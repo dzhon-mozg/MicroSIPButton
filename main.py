@@ -573,7 +573,7 @@ class ButtonFrame(wx.Frame):
         wx.GetApp().ExitMainLoop()
 
 
-def _tray_icon():
+def _drawn_tray_icon():
     bmp = wx.Bitmap(16, 16)
     dc = wx.MemoryDC(bmp)
     dc.SetBackground(wx.Brush(wx.Colour(64, 150, 255)))
@@ -589,10 +589,40 @@ def _tray_icon():
     return icon
 
 
+def _microsip_icon(exe_path):
+    if not exe_path:
+        return None
+    try:
+        big = ctypes.c_void_p()
+        small = ctypes.c_void_p()
+        shell32 = ctypes.windll.shell32
+        shell32.ExtractIconExW.argtypes = [
+            ctypes.c_wchar_p, ctypes.c_int,
+            ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(ctypes.c_void_p),
+            ctypes.c_uint,
+        ]
+        shell32.ExtractIconExW.restype = ctypes.c_uint
+        n = shell32.ExtractIconExW(exe_path, 0, ctypes.byref(big), ctypes.byref(small), 1)
+        if n and small.value:
+            icon = wx.Icon()
+            ok = icon.CreateFromHICON(small.value)
+            ctypes.windll.user32.DestroyIcon.argtypes = [ctypes.c_void_p]
+            if big.value and big.value != small.value:
+                ctypes.windll.user32.DestroyIcon(big.value)
+            if ok and icon.IsOk():
+                return icon
+    except Exception:
+        logging.warning("icon extraction failed", exc_info=True)
+    return None
+
+
 class TrayIcon(wx.adv.TaskBarIcon):
-    def __init__(self, app):
+    def __init__(self, app, microsip_exe=None):
         super().__init__()
-        self.SetIcon(_tray_icon(), "MicroSIPButton")
+        icon = _microsip_icon(microsip_exe) if microsip_exe else None
+        if icon is None:
+            icon = _drawn_tray_icon()
+        self.SetIcon(icon, "MicroSIPButton")
 
     def CreatePopupMenu(self):
         menu = wx.Menu()
@@ -621,13 +651,12 @@ class ButtonApp(wx.App):
             )
             return False
         hwnd = find_microsip()
-        if not hwnd:
-            exe = find_microsip_exe(self._microsip_path)
-            if exe:
-                logging.info("Launching MicroSIP: %s", exe)
-                subprocess.Popen([exe])
-            else:
-                logging.error("MicroSIP executable not found")
+        exe = find_microsip_exe(self._microsip_path)
+        if not hwnd and exe:
+            logging.info("Launching MicroSIP: %s", exe)
+            subprocess.Popen([exe])
+        elif not hwnd:
+            logging.error("MicroSIP executable not found")
         if not hwnd:
             wait_ms = int(MICROSIP_WAIT_SECONDS * 1000 / 200)
             for _ in range(wait_ms):
@@ -646,7 +675,7 @@ class ButtonApp(wx.App):
             return False
         logging.info("MicroSIP found (hwnd=%s), prefix=%s, starting", hwnd, self._prefix)
         self._frame = ButtonFrame(hwnd, self._prefix)
-        self._tray = TrayIcon(self)
+        self._tray = TrayIcon(self, exe)
         return True
 
     def OnExit(self):

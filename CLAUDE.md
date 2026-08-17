@@ -11,6 +11,7 @@ MicroSIPButton/
 ├── main.py              # Точка входа: wx.App, owned-окно, хук, трей, форматирование
 ├── microsip.py          # Взаимодействие с MicroSIP: поиск окон/exe, WM_PASTE с проверкой
 ├── build.bat            # Сборка exe (PyInstaller) + установщик (Inno Setup)
+├── extract_icon.py      # Извлекает полноразмерную иконку MicroSIP (16–256px) в icon.ico
 ├── version_info.txt     # Версия/метаданные для exe (PyInstaller --version-file)
 ├── installer/
 │   ├── MicroSIPButton.iss  # Скрипт Inno Setup (per-user, проверка MicroSIP, чекбоксы)
@@ -86,7 +87,7 @@ EVENT_SYSTEM_MINIMIZEEND   = 0x0017  # разворачивание
 2. Найден → `subprocess.Popen([exe])` и ожидание окна до `MICROSIP_WAIT_SECONDS` (20 сек, поллинг 0.2 сек).
 3. Не найден → сообщение «Установите MicroSIP…» и выход.
 
-Трей: `TrayIcon(wx.adv.TaskBarIcon)` с меню «Выход» (иконка рисуется программно в `_tray_icon()`: синий кружок + белая трубка). Выход из трея и смерть хоста (таймер) завершают всё приложение через `ExitMainLoop`; очистка — в `ButtonApp.OnExit` (хук, таймер, окно, трей).
+Трей: `TrayIcon(wx.adv.TaskBarIcon)` с меню «Выход». Иконка берётся из `MicroSIP.exe` в рантайме (`_microsip_icon`: `shell32.ExtractIconExW` → `wx.Icon.CreateFromHICON`, хендл передаётся wx в собственность — `DestroyIcon` для small не вызывать, иначе access violation). Фолбэк — нарисованная `_drawn_tray_icon`. Выход из трея и смерть хоста (таймер) завершают всё приложение через `ExitMainLoop`; очистка — в `ButtonApp.OnExit` (хук, таймер, окно, трей).
 
 ### Установщик (Inno Setup)
 
@@ -128,6 +129,8 @@ build.bat                          # exe (PyInstaller) + установщик (I
 ```
 
 `build.bat`: PyInstaller (`--onefile --windowed --icon=icon.ico --version-file=version_info.txt`) → `ISCC.exe /DAppVersion=<VERSION>` → результат `installer\Output\MicroSIPButton-Setup-<версия>.exe`. Версия задаётся переменной `VERSION` в начале build.bat. Комплект MicroSIP должен лежать в `installer\bundled\` (портабельный zip с microsip.org).
+
+`extract_icon.py` вытаскивает полноразмерную иконку (16–256px) из `installer\bundled\MicroSIP.exe` в `icon.ico` (парсинг RT_GROUP_ICON/RT_ICON ресурсов PE). Запускается автоматически из `build.bat` при наличии комплекта, чтобы иконка exe/ярлыков не отставала от версии MicroSIP. Важно: у ctypes-вызовов обязательны `argtypes`/`restype` (без них `LoadLibraryExW` обрезает 64-битный хендл до 32 бит), а `EnumResourceNamesW` с колбэком падает в Python 3.14 — вместо него перебор ID через `FindResourceW`.
 
 ## Тестирование
 

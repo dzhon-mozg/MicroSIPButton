@@ -25,16 +25,18 @@
 
 - Запустите MicroSIPButton (ярлык в меню «Пуск»). Если MicroSIP не запущен — кнопка сама его запустит
 - Копируете номер → жмёте синюю кнопку 📞
-- Значок в трее: правая кнопка → «Выход»
+- Значок в трее: правая кнопка → «Префикс…» или «Выход»
 - **Перетаскивание кнопки**: зажать правую кнопку мыши. Две зоны — слева и справа от окна MicroSIP, позиция запоминается
 
 ### Свой префикс
 
+Правой кнопкой по значку в трее → **«Префикс…»** → ввести префикс (например `+7`). Применяется сразу и сохраняется. По умолчанию — `98`.
+
+Продвинутый способ — аргумент командной строки (перекрывает сохранённый префикс):
+
 ```
 MicroSIPButton.exe --prefix "+7"
 ```
-
-Или создайте ярлык с этим параметром.
 
 ## Удаление
 
@@ -86,10 +88,14 @@ No admin rights required; installs to `%LOCALAPPDATA%\Programs\MicroSIPButton`.
 
 - Launch MicroSIPButton (Start Menu shortcut). It starts MicroSIP automatically if not running
 - Copy a number → click the blue 📞 button
-- Tray icon: right-click → "Exit"
+- Tray icon: right-click → "Prefix…" or "Exit"
 - **Drag the button**: hold the right mouse button. Two zones — left and right of the MicroSIP window; position is saved
 
 ### Custom prefix
+
+Right-click the tray icon → **"Prefix…"** → enter a prefix (e.g. `+44`). Applied immediately and saved. Default is `98`.
+
+Advanced: command-line argument (overrides the saved prefix):
 
 ```
 MicroSIPButton.exe --prefix "+44"

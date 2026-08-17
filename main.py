@@ -209,6 +209,16 @@ def _parse_prefix():
             return args[i + 1]
         if arg.startswith("--prefix="):
             return arg.split("=", 1)[1]
+    return None
+
+
+def _resolve_prefix():
+    cli = _parse_prefix()
+    if cli is not None:
+        return cli
+    cfg = _load_config()
+    if cfg and isinstance(cfg.get("prefix"), str):
+        return cfg["prefix"]
     return "98"
 
 
@@ -246,12 +256,14 @@ def _load_config():
         return None
 
 
-def _save_config(zone, offset, y_offset):
+def _save_config(**updates):
     try:
         path = _config_path()
         os.makedirs(os.path.dirname(path), exist_ok=True)
+        cfg = _load_config() or {}
+        cfg.update(updates)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump({"zone": zone, "offset": int(offset), "y_offset": int(y_offset)}, f)
+            json.dump(cfg, f)
     except Exception:
         logging.warning("config save failed", exc_info=True)
 
@@ -510,7 +522,7 @@ class ButtonFrame(wx.Frame):
         self._zone = zone
         self._offset = int(offset)
         self._y_offset = y - rect.top
-        _save_config(self._zone, self._offset, self._y_offset)
+        _save_config(zone=self._zone, offset=self._offset, y_offset=self._y_offset)
 
     def _on_click(self, evt):
         formatted = self._format_phone()
@@ -619,6 +631,7 @@ def _microsip_icon(exe_path):
 class TrayIcon(wx.adv.TaskBarIcon):
     def __init__(self, app, microsip_exe=None):
         super().__init__()
+        self._app = app
         icon = _microsip_icon(microsip_exe) if microsip_exe else None
         if icon is None:
             icon = _drawn_tray_icon()
@@ -626,9 +639,22 @@ class TrayIcon(wx.adv.TaskBarIcon):
 
     def CreatePopupMenu(self):
         menu = wx.Menu()
+        item = menu.Append(wx.ID_ANY, "Префикс…")
+        self.Bind(wx.EVT_MENU, self._on_prefix, item)
+        menu.AppendSeparator()
         item = menu.Append(wx.ID_EXIT, "Выход")
         self.Bind(wx.EVT_MENU, self._on_exit, item)
         return menu
+
+    def _on_prefix(self, evt):
+        dlg = wx.TextEntryDialog(
+            None, "Префикс, который добавляется к последним 10 цифрам номера "
+                  "(пусто — без префикса):",
+            "Префикс набора", self._app._prefix,
+        )
+        if dlg.ShowModal() == wx.ID_OK:
+            self._app.set_prefix(dlg.GetValue().strip())
+        dlg.Destroy()
 
     def _on_exit(self, evt):
         wx.GetApp().ExitMainLoop()
@@ -678,6 +704,13 @@ class ButtonApp(wx.App):
         self._tray = TrayIcon(self, exe)
         return True
 
+    def set_prefix(self, prefix):
+        self._prefix = prefix
+        if self._frame is not None:
+            self._frame._prefix = prefix
+        _save_config(prefix=prefix)
+        logging.info("prefix changed: %s", prefix)
+
     def OnExit(self):
         if self._tray is not None:
             self._tray.RemoveIcon()
@@ -693,6 +726,6 @@ if __name__ == '__main__':
     if "--selftest" in sys.argv:
         _selftest()
         sys.exit(0)
-    prefix = _parse_prefix()
+    prefix = _resolve_prefix()
     app = ButtonApp(prefix, _parse_microsip_path())
     app.MainLoop()

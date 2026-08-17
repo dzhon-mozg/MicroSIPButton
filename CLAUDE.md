@@ -87,7 +87,9 @@ EVENT_SYSTEM_MINIMIZEEND   = 0x0017  # разворачивание
 2. Найден → `subprocess.Popen([exe])` и ожидание окна до `MICROSIP_WAIT_SECONDS` (20 сек, поллинг 0.2 сек).
 3. Не найден → сообщение «Установите MicroSIP…» и выход.
 
-Трей: `TrayIcon(wx.adv.TaskBarIcon)` с меню «Выход». Иконка берётся из `MicroSIP.exe` в рантайме (`_microsip_icon`: `shell32.ExtractIconExW` → `wx.Icon.CreateFromHICON`, хендл передаётся wx в собственность — `DestroyIcon` для small не вызывать, иначе access violation). Фолбэк — нарисованная `_drawn_tray_icon`. Выход из трея и смерть хоста (таймер) завершают всё приложение через `ExitMainLoop`; очистка — в `ButtonApp.OnExit` (хук, таймер, окно, трей).
+Трей: `TrayIcon(wx.adv.TaskBarIcon)` с меню «Префикс…» и «Выход». «Префикс…» — `wx.TextEntryDialog` → `ButtonApp.set_prefix()`: сохраняет в config.json и обновляет `ButtonFrame._prefix` в рантайме. Иконка берётся из `MicroSIP.exe` в рантайме (`_microsip_icon`: `shell32.ExtractIconExW` → `wx.Icon.CreateFromHICON`, хендл передаётся wx в собственность — `DestroyIcon` для small не вызывать, иначе access violation). Фолбэк — нарисованная `_drawn_tray_icon`. Выход из трея и смерть хоста (таймер) завершают всё приложение через `ExitMainLoop`; очистка — в `ButtonApp.OnExit` (хук, таймер, окно, трей).
+
+Префикс (`_resolve_prefix`): `--prefix` из командной строки → `config.json["prefix"]` → `"98"`. Конфиг хранит `{zone, offset, y_offset, prefix}`; `_save_config(**updates)` мержит с существующим (не затирает).
 
 ### Установщик (Inno Setup)
 
@@ -118,7 +120,7 @@ digits = [c for c in raw if c.isdigit()]
 if len(digits) >= 10:
     formatted = "98" + "".join(digits[-10:])
 ```
-Берёт последние 10 цифр из буфера, добавляет префикс `98`.
+Берёт последние 10 цифр из буфера, добавляет префикс (по умолчанию `98`, задаётся через трей или `--prefix`).
 
 ## Сборка
 
@@ -143,6 +145,7 @@ build.bat                          # exe (PyInstaller) + установщик (I
 - Закрыть MicroSIP в трей (крестик) → кнопка должна спрятаться
 - Скопировать номер с 10+ цифрами → нажать кнопку → проверить вставку
 - Проверить, что кнопка не видна в Alt+Tab и не забирает фокус
+- Трей: правая кнопка → «Префикс…» → ввести префикс → применяется сразу и сохраняется в config.json
 - Трей: правая кнопка → «Выход» → приложение полностью завершается
 
 Установщик: `installer\Output\MicroSIPButton-Setup-*.exe` — установить, проверить ярлыки и запуск; удалить через «Удалить MicroSIPButton», проверить, что MicroSIP из комплекта удалён, а настройки остались.

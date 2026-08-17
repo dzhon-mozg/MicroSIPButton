@@ -13,13 +13,20 @@
 
 **Одно нажатие.** Не надо переключаться между окнами, выделять текст, редактировать вручную.
 
-## Быстрый старт
+## Установка
 
-1. Скачать [`MicroSIPButton.exe`](../../releases/latest) из Releases
-2. Скопировать `launch.bat` в ту же папку
-3. Запустить MicroSIP, затем MicroSIPButton.exe
+1. Скачать [`MicroSIPButton-Setup-1.0.0.exe`](../../releases/latest) из Releases
+2. Запустить установщик. Если MicroSIP ещё не установлен — отметить «Установить MicroSIP (из комплекта)»
+3. По желанию: ярлык на рабочем столе, запуск сразу после установки
 
-Дальше: копируете номер → жмёте синюю кнопку 📞.
+Установка без прав администратора, в `%LOCALAPPDATA%\Programs\MicroSIPButton`.
+
+## Использование
+
+- Запустите MicroSIPButton (ярлык в меню «Пуск»). Если MicroSIP не запущен — кнопка сама его запустит
+- Копируете номер → жмёте синюю кнопку 📞
+- Значок в трее: правая кнопка → «Выход»
+- **Перетаскивание кнопки**: зажать правую кнопку мыши. Две зоны — слева и справа от окна MicroSIP, позиция запоминается
 
 ### Свой префикс
 
@@ -27,49 +34,60 @@
 MicroSIPButton.exe --prefix "+7"
 ```
 
+Или создайте ярлык с этим параметром.
+
+## Удаление
+
+«Пуск» → «Удалить MicroSIPButton» (или «Параметры» → «Приложения»). Если MicroSIP был установлен из комплекта — он будет удалён, ваши настройки и контакты MicroSIP сохраняются.
+
 ## Особенности интерфейса
 
 - Кнопка прикреплена к окну MicroSIP (справа, по центру) и следует за ним при перемещении/редизайне
 - Прячется при сворачивании MicroSIP и при уходе в трей
 - Не перекрывает другие приложения (выше MicroSIP, но ниже остальных окон)
 - Не видна в Alt+Tab и не забирает фокус при клике
-- **Перетаскивание**: зажмите правую кнопку мыши и двигайте кнопку. Две зоны — слева и справа от окна MicroSIP: от 1.5 размеров кнопки внутри окна до 3 размеров снаружи. Кнопку можно ставить прямо на границу окна. По вертикали — в пределах окна MicroSIP. Во время перетаскивания зоны подсвечиваются зелёным с яркими границами. Позиция запоминается и восстанавливается при следующем запуске.
 
 ## Требования
 
 - Windows 10/11
-- [MicroSIP](https://www.microsip.org/)
+- MicroSIP (устанавливается из комплекта либо с [microsip.org](https://www.microsip.org/))
+
+## Ограничения
+
+- Только один экземпляр MicroSIP
+- При закрытии MicroSIP кнопка тоже закрывается — запустите MicroSIPButton снова
 
 ## Сборка
 
 ```bat
 pip install -r requirements.txt
-python main.py
+python main.py            # запуск для разработки
+python main.py --selftest # проверка логики без GUI
+build.bat                 # exe + установщик (нужен Inno Setup 6)
 ```
 
-Сборка в exe:
-
-```bat
-pyinstaller --onefile --windowed --icon=icon.ico --name MicroSIPButton main.py
-```
+Результат: `installer\Output\MicroSIPButton-Setup-<версия>.exe`.
 
 ---
 
-## MicroSIPButton — palette button for MicroSIP
+## MicroSIPButton — palette button for MicroSIP (EN)
 
 Copy a phone number (Ctrl+C) → click the button → number is formatted and pasted into MicroSIP's dial field. **One click.**
 
-### What it does
+### Install
 
-MicroSIP has no built-in number formatting. MicroSIPButton automates it: extracts last 10 digits from clipboard, prepends a prefix (default `98` for SIP providers), and injects the result into the dial field.
+1. Download [`MicroSIPButton-Setup-1.0.0.exe`](../../releases/latest) from Releases
+2. Run the installer. If MicroSIP is not installed, check "Install MicroSIP (bundled)"
+3. Optional: desktop shortcut, launch after install
 
-### Quick start
+No admin rights required; installs to `%LOCALAPPDATA%\Programs\MicroSIPButton`.
 
-1. Download [`MicroSIPButton.exe`](../../releases/latest) from Releases
-2. Copy `launch.bat` to the same folder
-3. Launch MicroSIP, then MicroSIPButton.exe
+### Usage
 
-Copy a number → click the blue 📞 button.
+- Launch MicroSIPButton (Start Menu shortcut). It starts MicroSIP automatically if not running
+- Copy a number → click the blue 📞 button
+- Tray icon: right-click → "Exit"
+- **Drag the button**: hold the right mouse button. Two zones — left and right of the MicroSIP window; position is saved
 
 ### Custom prefix
 
@@ -77,22 +95,18 @@ Copy a number → click the blue 📞 button.
 MicroSIPButton.exe --prefix "+44"
 ```
 
-### UI features
+### Uninstall
 
-- Docks to the right of MicroSIP, follows movement/resizing instantly
-- Hides with MicroSIP (minimize and tray)
-- Stays above MicroSIP but below other apps
-- Invisible in Alt+Tab, does not steal focus
-- **Dragging**: hold the right mouse button to move the button. Two zones — left and right of the MicroSIP window: from 1.5 button sizes inside to 3 button sizes outside. The button may sit right on the window border. Vertical movement is limited to MicroSIP's height. The zones are highlighted in green with bright borders while dragging. The position is saved and restored on next launch.
+Start Menu → "Uninstall MicroSIPButton" (or Settings → Apps). MicroSIP is removed only if it was installed from the bundle; its settings and contacts are kept.
 
-### Requirements
+### Requirements / Limitations
 
 - Windows 10/11
-- [MicroSIP](https://www.microsip.org/)
+- Single MicroSIP instance; the button exits when MicroSIP closes — just relaunch it
 
 ### Build
 
 ```bat
 pip install -r requirements.txt
-pyinstaller --onefile --windowed --icon=icon.ico --name MicroSIPButton main.py
+build.bat   # builds exe + installer (requires Inno Setup 6)
 ```

@@ -3,3 +3,4 @@ build/
 dist/
 *.spec
 RELEASE.local.md
+installer/Output/

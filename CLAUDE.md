@@ -8,14 +8,17 @@ MicroSIPButton — оконное приложение на Python 3 + wxPython.
 
 ```
 MicroSIPButton/
-├── main.py          # Точка входа: wx.App, owned-окно, событийное отслеживание, форматирование
-├── microsip.py      # Взаимодействие с MicroSIP: поиск окон, WM_PASTE с проверкой
-├── launch.bat       # Бабатник: запускает MicroSIP и MicroSIPButton вместе
-├── build.bat        # Сборка exe через PyInstaller
-├── requirements.txt # wxPython>=4.2.0
+├── main.py              # Точка входа: wx.App, owned-окно, хук, трей, форматирование
+├── microsip.py          # Взаимодействие с MicroSIP: поиск окон/exe, WM_PASTE с проверкой
+├── build.bat            # Сборка exe (PyInstaller) + установщик (Inno Setup)
+├── version_info.txt     # Версия/метаданные для exe (PyInstaller --version-file)
+├── installer/
+│   ├── MicroSIPButton.iss  # Скрипт Inno Setup (per-user, проверка MicroSIP, чекбоксы)
+│   └── bundled/            # Портабельный MicroSIP для установки «из комплекта»
+├── requirements.txt     # wxPython>=4.2.0
 ├── .gitignore
-├── README.md        # Инструкция для пользователей
-└── CLAUDE.md        # Этот файл — инструкция для AI
+├── README.md            # Инструкция для пользователей
+└── CLAUDE.md            # Этот файл — инструкция для AI
 ```
 
 ## Ключевая архитектура
@@ -76,6 +79,24 @@ EVENT_SYSTEM_MINIMIZEEND   = 0x0017  # разворачивание
 
 Подсветка зон: класс `ZoneOverlay` — 2 окна с попиксельной прозрачностью (layered: `WS_EX_LAYERED` + `UpdateLayeredWindow` с 32-битной DIB), owned-потомки MicroSIP, `WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT`, z-order ниже кнопки. Визуал: рамка `OVERLAY_BORDER_PX` px цветом `OVERLAY_BORDER` (почти непрозрачная), от неё внутрь градиент `OVERLAY_GRADIENT_PX` px к полупрозрачной заливке `OVERLAY_FILL`. Создаются лениво при первом драге, позиционируются по `zone_rects` (показ — `UpdateLayeredWindow` + `ShowWindow(SW_SHOWNA)`, скрытие — `ShowWindow(SW_HIDE)`). Важно: после смены ex-style через `SetWindowLongPtrW` нужен `SetWindowPos(SWP_FRAMECHANGED)`, иначе `WS_EX_LAYERED` не применится.
 
+### Запуск MicroSIP и трей-иконка (v3)
+
+При старте `ButtonApp.OnInit` ищет окно MicroSIP (`FindWindowW`). Если не найдено:
+1. `find_microsip_exe(explicit)` в `microsip.py` — поиск microsip.exe по порядку: аргумент `--microsip <путь>` → реестр HKCU (uninstall-запись MicroSIP) → `%LOCALAPPDATA%\MicroSIP\MicroSIP.exe` → папка exe (и подпапка `MicroSIP`) → `%ProgramFiles%`/`%ProgramFiles(x86)%`.
+2. Найден → `subprocess.Popen([exe])` и ожидание окна до `MICROSIP_WAIT_SECONDS` (20 сек, поллинг 0.2 сек).
+3. Не найден → сообщение «Установите MicroSIP…» и выход.
+
+Трей: `TrayIcon(wx.adv.TaskBarIcon)` с меню «Выход» (иконка рисуется программно в `_tray_icon()`: синий кружок + белая трубка). Выход из трея и смерть хоста (таймер) завершают всё приложение через `ExitMainLoop`; очистка — в `ButtonApp.OnExit` (хук, таймер, окно, трей).
+
+### Установщик (Inno Setup)
+
+`installer/MicroSIPButton.iss` собирается командой `ISCC.exe /DAppVersion=<версия>` (Inno Setup 6.7, путь по умолчанию `D:\Programs\InnoSetup\ISCC.exe`):
+- **Per-user**: `PrivilegesRequired=lowest`, установка в `{localappdata}\Programs\MicroSIPButton`, без UAC.
+- **Проверка MicroSIP**: функция `MicroSIPInstalled()` (реестр HKCU + файл). Если найден — задача `installmicrosip` отключена; если нет — чекбокс «Установить MicroSIP (из комплекта)» включён по умолчанию. При снятом чекбоксе `PrepareToInstall` спрашивает подтверждение.
+- **Комплект**: `bundled\*` → `{localappdata}\MicroSIP` (только при задаче `installmicrosip`). Флаг `MicroSIPBundled=1` в `HKCU\Software\MicroSIPButton` — деинсталлятор удаляет только файлы комплекта (по имени, список в `BundledMicroSIPFiles`), настройки/контакты MicroSIP не трогает.
+- Ярлыки: меню «Пуск» (программа + удаление), рабочий стол по чекбоксу. `[Run]` — запуск после установки.
+- Языки: русский (по умолчанию) + английский. Обновление версии комплекта MicroSIP: заменить файлы в `installer/bundled/` и список файлов для удаления в `CurUninstallStepChanged`.
+
 ### Вставка в поле набора
 
 `microsip.paste_to_microsip(formatted)`:
@@ -103,20 +124,25 @@ if len(digits) >= 10:
 ```bat
 pip install -r requirements.txt    # Установка зависимостей (нужен wxPython)
 python main.py                     # Запуск для разработки
-pyinstaller --onefile --windowed --name MicroSIPButton main.py  # Сборка exe
+build.bat                          # exe (PyInstaller) + установщик (Inno Setup)
 ```
 
-Результат сборки: `dist\MicroSIPButton.exe` (~10 МБ).
+`build.bat`: PyInstaller (`--onefile --windowed --icon=icon.ico --version-file=version_info.txt`) → `ISCC.exe /DAppVersion=<VERSION>` → результат `installer\Output\MicroSIPButton-Setup-<версия>.exe`. Версия задаётся переменной `VERSION` в начале build.bat. Комплект MicroSIP должен лежать в `installer\bundled\` (портабельный zip с microsip.org).
 
 ## Тестирование
 
-Ручное: запустить MicroSIP, затем `python main.py`:
+Ручное: закрыть MicroSIP, затем `python main.py`:
+- Кнопка сама запускает MicroSIP и прикрепляется (ожидание до 20 сек)
+- При запущенном MicroSIP — прикрепление без запуска второго экземпляра
 - Проверить прикрепление кнопки справа от окна
 - Проверить следование при перетаскивании MicroSIP
 - Свернуть MicroSIP → кнопка должна спрятаться
 - Закрыть MicroSIP в трей (крестик) → кнопка должна спрятаться
 - Скопировать номер с 10+ цифрами → нажать кнопку → проверить вставку
 - Проверить, что кнопка не видна в Alt+Tab и не забирает фокус
+- Трей: правая кнопка → «Выход» → приложение полностью завершается
+
+Установщик: `installer\Output\MicroSIPButton-Setup-*.exe` — установить, проверить ярлыки и запуск; удалить через «Удалить MicroSIPButton», проверить, что MicroSIP из комплекта удалён, а настройки остались.
 
 Драг (правая кнопка):
 - Перетащить в каждую из 2 зон (слева/справа) — видны 2 зелёные подсветки
@@ -154,5 +180,5 @@ pyinstaller --onefile --windowed --name MicroSIPButton main.py  # Сборка e
 
 - Только Windows (Win32 API: FindWindowW, SendMessage, ownership)
 - Только один экземпляр MicroSIP (берет первый найденный по классу окна)
-- При рестарте MicroSIP нужно перезапустить и кнопку (ownership разрушается вместе с хозяином)
-- Не работает без MicroSIP (показывает сообщение и выходит)
+- При закрытии MicroSIP кнопка завершается вместе с ним — запустить MicroSIPButton заново (ownership разрушается вместе с хозяином)
+- Не работает без MicroSIP (сам запускает при наличии exe, иначе сообщение и выход)

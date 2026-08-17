@@ -1,3 +1,11 @@
 @echo off
-pyinstaller --onefile --windowed --icon=icon.ico --name MicroSIPButton main.py
-echo Build complete: dist\MicroSIPButton.exe
+setlocal
+set VERSION=1.0.0
+pyinstaller --onefile --windowed --icon=icon.ico --version-file=version_info.txt --name MicroSIPButton main.py
+if errorlevel 1 exit /b 1
+if not exist dist\MicroSIPButton.exe exit /b 1
+set ISCC=D:\Programs\InnoSetup\ISCC.exe
+if not exist "%ISCC%" set ISCC=ISCC.exe
+"%ISCC%" /DAppVersion=%VERSION% installer\MicroSIPButton.iss
+if errorlevel 1 exit /b 1
+echo Build complete: installer\Output\MicroSIPButton-Setup-%VERSION%.exe

@@ -3,12 +3,14 @@ import ctypes.wintypes
 import json
 import logging
 import os
+import subprocess
 import sys
 import tempfile
 import time
 from ctypes.wintypes import RECT
 import wx
-from microsip import find_microsip, find_dial_edit, paste_to_microsip
+import wx.adv
+from microsip import find_microsip, find_microsip_exe, find_dial_edit, paste_to_microsip
 
 GWL_EXSTYLE = -20
 GWLP_HWNDPARENT = -8
@@ -49,7 +51,7 @@ VISIBILITY_EVENTS = {
     EVENT_SYSTEM_MINIMIZESTART,
     EVENT_SYSTEM_MINIMIZEEND,
 }
-MICROSIP_WAIT_SECONDS = 6
+MICROSIP_WAIT_SECONDS = 20
 
 
 def snap_ranges(rect, size=BUTTON_SIZE_PX, inside=ZONE_INSIDE_PX, outside=ZONE_OUTSIDE_PX):
@@ -208,6 +210,16 @@ def _parse_prefix():
         if arg.startswith("--prefix="):
             return arg.split("=", 1)[1]
     return "98"
+
+
+def _parse_microsip_path():
+    args = sys.argv[1:]
+    for i, arg in enumerate(args):
+        if arg == "--microsip" and i + 1 < len(args):
+            return args[i + 1]
+        if arg.startswith("--microsip="):
+            return arg.split("=", 1)[1]
+    return None
 
 
 def _setup_logging():
@@ -558,11 +570,46 @@ class ButtonFrame(wx.Frame):
             ov.Destroy()
         self._overlays = []
         self.Destroy()
+        wx.GetApp().ExitMainLoop()
+
+
+def _tray_icon():
+    bmp = wx.Bitmap(16, 16)
+    dc = wx.MemoryDC(bmp)
+    dc.SetBackground(wx.Brush(wx.Colour(64, 150, 255)))
+    dc.Clear()
+    dc.SetBrush(wx.WHITE_BRUSH)
+    dc.SetPen(wx.TRANSPARENT_PEN)
+    dc.DrawRoundedRectangle(3, 1, 10, 4, 2)
+    dc.DrawRoundedRectangle(3, 11, 10, 4, 2)
+    dc.DrawRectangle(6, 5, 4, 6)
+    dc.SelectObject(wx.NullBitmap)
+    icon = wx.Icon()
+    icon.CopyFromBitmap(bmp)
+    return icon
+
+
+class TrayIcon(wx.adv.TaskBarIcon):
+    def __init__(self, app):
+        super().__init__()
+        self.SetIcon(_tray_icon(), "MicroSIPButton")
+
+    def CreatePopupMenu(self):
+        menu = wx.Menu()
+        item = menu.Append(wx.ID_EXIT, "Выход")
+        self.Bind(wx.EVT_MENU, self._on_exit, item)
+        return menu
+
+    def _on_exit(self, evt):
+        wx.GetApp().ExitMainLoop()
 
 
 class ButtonApp(wx.App):
-    def __init__(self, prefix: str):
+    def __init__(self, prefix: str, microsip_path: str | None = None):
         self._prefix = prefix
+        self._microsip_path = microsip_path
+        self._frame = None
+        self._tray = None
         super().__init__()
 
     def OnInit(self):
@@ -575,6 +622,13 @@ class ButtonApp(wx.App):
             return False
         hwnd = find_microsip()
         if not hwnd:
+            exe = find_microsip_exe(self._microsip_path)
+            if exe:
+                logging.info("Launching MicroSIP: %s", exe)
+                subprocess.Popen([exe])
+            else:
+                logging.error("MicroSIP executable not found")
+        if not hwnd:
             wait_ms = int(MICROSIP_WAIT_SECONDS * 1000 / 200)
             for _ in range(wait_ms):
                 time.sleep(0.2)
@@ -584,13 +638,25 @@ class ButtonApp(wx.App):
         if not hwnd:
             logging.error("MicroSIP window not found")
             wx.MessageBox(
-                "Запустите MicroSIP перед запуском этой программы.",
+                "MicroSIP не найден.\n\n"
+                "Установите MicroSIP (microsip.org) или переустановите "
+                "MicroSIPButton, отметив «Установить MicroSIP (из комплекта)».",
                 "Кнопка", wx.OK | wx.ICON_INFORMATION,
             )
             return False
         logging.info("MicroSIP found (hwnd=%s), prefix=%s, starting", hwnd, self._prefix)
         self._frame = ButtonFrame(hwnd, self._prefix)
+        self._tray = TrayIcon(self)
         return True
+
+    def OnExit(self):
+        if self._tray is not None:
+            self._tray.RemoveIcon()
+            self._tray.Destroy()
+            self._tray = None
+        if self._frame is not None and self._frame._active:
+            self._frame._on_close(None)
+        return super().OnExit()
 
 
 if __name__ == '__main__':
@@ -599,5 +665,5 @@ if __name__ == '__main__':
         _selftest()
         sys.exit(0)
     prefix = _parse_prefix()
-    app = ButtonApp(prefix)
+    app = ButtonApp(prefix, _parse_microsip_path())
     app.MainLoop()

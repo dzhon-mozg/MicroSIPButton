@@ -1,11 +1,54 @@
 import ctypes
 import ctypes.wintypes
+import os
+import sys
 import time
+import winreg
 
 
 def find_microsip() -> int | None:
     hwnd = ctypes.windll.user32.FindWindowW("MicroSIP", None)
     return hwnd if hwnd else None
+
+
+def _registry_microsip_dir() -> str | None:
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Uninstall\MicroSIP",
+        ) as key:
+            try:
+                loc = winreg.QueryValueEx(key, "InstallLocation")[0]
+            except OSError:
+                loc = ""
+            try:
+                un = winreg.QueryValueEx(key, "UninstallString")[0].strip('"')
+            except OSError:
+                un = ""
+    except OSError:
+        return None
+    for base in (loc, os.path.dirname(un)):
+        if base and os.path.isfile(os.path.join(base, "MicroSIP.exe")):
+            return base
+    return None
+
+
+def find_microsip_exe(explicit: str | None = None) -> str | None:
+    local = os.environ.get("LOCALAPPDATA", "")
+    exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+    candidates = [
+        explicit,
+        os.path.join(_registry_microsip_dir() or "", "MicroSIP.exe"),
+        os.path.join(local, "MicroSIP", "MicroSIP.exe"),
+        os.path.join(exe_dir, "MicroSIP.exe"),
+        os.path.join(exe_dir, "MicroSIP", "MicroSIP.exe"),
+        os.path.join(os.environ.get("ProgramFiles", ""), "MicroSIP", "MicroSIP.exe"),
+        os.path.join(os.environ.get("ProgramFiles(x86)", ""), "MicroSIP", "MicroSIP.exe"),
+    ]
+    for path in candidates:
+        if path and os.path.isfile(path):
+            return path
+    return None
 
 
 def find_dial_edit(hwnd: int) -> int | None:

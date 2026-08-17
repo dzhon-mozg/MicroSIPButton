@@ -15,7 +15,7 @@
 
 ## Установка
 
-1. Скачать [`MicroSIPButton-Setup-1.6.1.exe`](../../releases/latest) из Releases
+1. Скачать [`MicroSIPButton-Setup-1.7.0.exe`](../../releases/latest) из Releases
 2. Запустить установщик. Если MicroSIP ещё не установлен — отметить «Установить MicroSIP (из комплекта)»
 3. По желанию: ярлык на рабочем столе, запуск сразу после установки
 
@@ -25,7 +25,7 @@
 
 - Запустите MicroSIPButton (ярлык в меню «Пуск»). Если MicroSIP не запущен — кнопка сама его запустит
 - Копируете номер → жмёте синюю кнопку 📞
-- Значок в трее: правая кнопка → «Префикс…» или «Выход»
+- Значок в трее: левая кнопка — свернуть/развернуть окно MicroSIP (как его собственная иконка); правая кнопка → «Префикс…» или «Выход»
 - **Перетаскивание кнопки**: зажать правую кнопку мыши. Две зоны — слева и справа от окна MicroSIP, позиция запоминается
 
 ### Свой префикс
@@ -78,7 +78,7 @@ Copy a phone number (Ctrl+C) → click the button → number is formatted and pa
 
 ### Install
 
-1. Download [`MicroSIPButton-Setup-1.6.1.exe`](../../releases/latest) from Releases
+1. Download [`MicroSIPButton-Setup-1.7.0.exe`](../../releases/latest) from Releases
 2. Run the installer. If MicroSIP is not installed, check "Install MicroSIP (bundled)"
 3. Optional: desktop shortcut, launch after install
 
@@ -88,7 +88,7 @@ No admin rights required; installs to `%LOCALAPPDATA%\Programs\MicroSIPButton`.
 
 - Launch MicroSIPButton (Start Menu shortcut). It starts MicroSIP automatically if not running
 - Copy a number → click the blue 📞 button
-- Tray icon: right-click → "Prefix…" or "Exit"
+- Tray icon: left-click — minimize/restore the MicroSIP window (same as its own icon); right-click → "Prefix…" or "Exit"
 - **Drag the button**: hold the right mouse button. Two zones — left and right of the MicroSIP window; position is saved
 
 ### Custom prefix

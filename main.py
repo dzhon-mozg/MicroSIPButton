@@ -10,7 +10,7 @@ import time
 from ctypes.wintypes import RECT
 import wx
 import wx.adv
-from microsip import find_microsip, find_microsip_exe, find_dial_edit, paste_to_microsip
+from microsip import find_microsip, find_microsip_exe, find_dial_edit, paste_to_microsip, toggle_microsip
 
 GWL_EXSTYLE = -20
 GWLP_HWNDPARENT = -8
@@ -636,6 +636,11 @@ class TrayIcon(wx.adv.TaskBarIcon):
         if icon is None:
             icon = _drawn_tray_icon()
         self.SetIcon(icon, "MicroSIPButton")
+        self.Bind(wx.adv.EVT_TASKBAR_LEFT_DOWN, self._on_toggle)
+
+    def _on_toggle(self, evt):
+        hwnd = find_microsip() or (self._app._frame._host_hwnd if self._app._frame else None)
+        toggle_microsip(hwnd)
 
     def CreatePopupMenu(self):
         menu = wx.Menu()

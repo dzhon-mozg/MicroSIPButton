@@ -5,6 +5,11 @@ import sys
 import time
 import winreg
 
+SW_HIDE = 0
+SW_SHOW = 5
+SW_MINIMIZE = 6
+SW_RESTORE = 9
+
 
 def find_microsip() -> int | None:
     hwnd = ctypes.windll.user32.FindWindowW("MicroSIP", None)
@@ -65,6 +70,21 @@ def find_dial_edit(hwnd: int) -> int | None:
 
     user32.EnumChildWindows(hwnd, WNDENUMPROC(callback), 0)
     return found[0] if found else None
+
+
+def toggle_microsip(hwnd: int) -> bool:
+    if not hwnd:
+        return False
+    user32 = ctypes.windll.user32
+    if user32.IsIconic(hwnd):
+        user32.ShowWindow(hwnd, SW_RESTORE)
+        user32.SetForegroundWindow(hwnd)
+    elif user32.IsWindowVisible(hwnd):
+        user32.ShowWindow(hwnd, SW_HIDE)
+    else:
+        user32.ShowWindow(hwnd, SW_SHOW)
+        user32.SetForegroundWindow(hwnd)
+    return True
 
 
 def paste_to_microsip(text: str) -> bool:

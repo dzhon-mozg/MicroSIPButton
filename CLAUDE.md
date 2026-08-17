@@ -87,7 +87,7 @@ EVENT_SYSTEM_MINIMIZEEND   = 0x0017  # разворачивание
 2. Найден → `subprocess.Popen([exe])` и ожидание окна до `MICROSIP_WAIT_SECONDS` (20 сек, поллинг 0.2 сек).
 3. Не найден → сообщение «Установите MicroSIP…» и выход.
 
-Трей: `TrayIcon(wx.adv.TaskBarIcon)` с меню «Префикс…» и «Выход». «Префикс…» — `wx.TextEntryDialog` → `ButtonApp.set_prefix()`: сохраняет в config.json и обновляет `ButtonFrame._prefix` в рантайме. Иконка берётся из `MicroSIP.exe` в рантайме (`_microsip_icon`: `shell32.ExtractIconExW` → `wx.Icon.CreateFromHICON`, хендл передаётся wx в собственность — `DestroyIcon` для small не вызывать, иначе access violation). Фолбэк — нарисованная `_drawn_tray_icon`. Выход из трея и смерть хоста (таймер) завершают всё приложение через `ExitMainLoop`; очистка — в `ButtonApp.OnExit` (хук, таймер, окно, трей).
+Трей: `TrayIcon(wx.adv.TaskBarIcon)` с меню «Префикс…» и «Выход». Левый клик по трею — `_on_toggle` → `microsip.toggle_microsip(hwnd)` (`SW_RESTORE`/`SW_HIDE`/`SW_SHOW`), разворачивает/сворачивает окно MicroSIP (то же, что клик по его иконке). «Префикс…» — `wx.TextEntryDialog` → `ButtonApp.set_prefix()`: сохраняет в config.json и обновляет `ButtonFrame._prefix` в рантайме. Иконка берётся из `MicroSIP.exe` в рантайме (`_microsip_icon`: `shell32.ExtractIconExW` → `wx.Icon.CreateFromHICON`, хендл передаётся wx в собственность — `DestroyIcon` для small не вызывать, иначе access violation). Фолбэк — нарисованная `_drawn_tray_icon`. Выход из трея и смерть хоста (таймер) завершают всё приложение через `ExitMainLoop`; очистка — в `ButtonApp.OnExit` (хук, таймер, окно, трей).
 
 Префикс (`_resolve_prefix`): `--prefix` из командной строки → `config.json["prefix"]` → `"98"`. Конфиг хранит `{zone, offset, y_offset, prefix}`; `_save_config(**updates)` мержит с существующим (не затирает).
 
@@ -146,6 +146,7 @@ build.bat                          # exe (PyInstaller) + установщик (I
 - Скопировать номер с 10+ цифрами → нажать кнопку → проверить вставку
 - Проверить, что кнопка не видна в Alt+Tab и не забирает фокус
 - Трей: правая кнопка → «Префикс…» → ввести префикс → применяется сразу и сохраняется в config.json
+- Трей: левая кнопка → окно MicroSIP сворачивается в трей (кнопка скрывается), повторный клик — разворачивается
 - Трей: правая кнопка → «Выход» → приложение полностью завершается
 
 Установщик: `installer\Output\MicroSIPButton-Setup-*.exe` — установить, проверить ярлыки и запуск; удалить через «Удалить MicroSIPButton», проверить, что MicroSIP из комплекта удалён, а настройки остались.

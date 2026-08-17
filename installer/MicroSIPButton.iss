@@ -1,7 +1,7 @@
 #define MyAppName "MicroSIPButton"
 #define MyAppExeName "MicroSIPButton.exe"
 #ifndef AppVersion
-  #define AppVersion "1.0.0"
+  #define AppVersion "1.6"
 #endif
 
 [Setup]

@@ -15,7 +15,7 @@
 
 ## Установка
 
-1. Скачать [`MicroSIPButton-Setup-1.0.0.exe`](../../releases/latest) из Releases
+1. Скачать [`MicroSIPButton-Setup-1.6.exe`](../../releases/latest) из Releases
 2. Запустить установщик. Если MicroSIP ещё не установлен — отметить «Установить MicroSIP (из комплекта)»
 3. По желанию: ярлык на рабочем столе, запуск сразу после установки
 
@@ -76,7 +76,7 @@ Copy a phone number (Ctrl+C) → click the button → number is formatted and pa
 
 ### Install
 
-1. Download [`MicroSIPButton-Setup-1.0.0.exe`](../../releases/latest) from Releases
+1. Download [`MicroSIPButton-Setup-1.6.exe`](../../releases/latest) from Releases
 2. Run the installer. If MicroSIP is not installed, check "Install MicroSIP (bundled)"
 3. Optional: desktop shortcut, launch after install
 

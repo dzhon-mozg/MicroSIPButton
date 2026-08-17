@@ -1,6 +1,6 @@
 @echo off
 setlocal
-set VERSION=1.6
+set VERSION=1.6.1
 if exist installer\bundled\MicroSIP.exe python extract_icon.py
 if errorlevel 1 exit /b 1
 pyinstaller --onefile --windowed --icon=icon.ico --version-file=version_info.txt --name MicroSIPButton main.py

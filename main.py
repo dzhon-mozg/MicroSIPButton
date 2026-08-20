@@ -398,6 +398,10 @@ class ButtonFrame(wx.Frame):
         rect = RECT()
         user32.GetWindowRect(self._host_hwnd, ctypes.byref(rect))
         x, y = placement_coords(self._zone, self._offset, self._y_offset, rect, *_virtual_screen())
+        own = RECT()
+        user32.GetWindowRect(self.GetHandle(), ctypes.byref(own))
+        if own.left == x and own.top == y:
+            return
         user32.MoveWindow(self.GetHandle(), x, y, BUTTON_SIZE_PX, BUTTON_SIZE_PX, True)
 
     def _setup_event_hook(self):
@@ -450,6 +454,7 @@ class ButtonFrame(wx.Frame):
             return
         if not self._dragging:
             self._sync_visibility()
+            self._do_position()
 
     def _show_overlays(self):
         if not self._overlays:

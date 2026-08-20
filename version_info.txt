@@ -1,7 +1,7 @@
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 7, 0, 0),
-    prodvers=(1, 7, 0, 0),
+    filevers=(1, 7, 1, 0),
+    prodvers=(1, 7, 1, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -14,12 +14,12 @@ VSVersionInfo(
       StringTable('041904B0', [
         StringStruct('CompanyName', 'MicroSIPButton'),
         StringStruct('FileDescription', 'MicroSIPButton \u2014 кнопка набора номера для MicroSIP'),
-        StringStruct('FileVersion', '1.7.0'),
+        StringStruct('FileVersion', '1.7.1'),
         StringStruct('InternalName', 'MicroSIPButton'),
         StringStruct('LegalCopyright', 'MicroSIPButton'),
         StringStruct('OriginalFilename', 'MicroSIPButton.exe'),
         StringStruct('ProductName', 'MicroSIPButton'),
-        StringStruct('ProductVersion', '1.7.0')
+        StringStruct('ProductVersion', '1.7.1')
       ])
     ]),
     VarFileInfo([VarStruct('Translation', [1049, 1200])])

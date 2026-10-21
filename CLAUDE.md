@@ -87,7 +87,7 @@ EVENT_SYSTEM_MINIMIZEEND   = 0x0017  # разворачивание
 2. Найден → `subprocess.Popen([exe])` и ожидание окна до `MICROSIP_WAIT_SECONDS` (20 сек, поллинг 0.2 сек).
 3. Не найден → сообщение «Установите MicroSIP…» и выход.
 
-Трей: `TrayIcon(wx.adv.TaskBarIcon)` с меню «Префикс…» и «Выход». Левый клик по трею — `_on_toggle` → `microsip.toggle_microsip(hwnd)` (`SW_RESTORE`/`SW_HIDE`/`SW_SHOW`), разворачивает/сворачивает окно MicroSIP (то же, что клик по его иконке). «Префикс…» — `wx.TextEntryDialog` → `ButtonApp.set_prefix()`: сохраняет в config.json и обновляет `ButtonFrame._prefix` в рантайме. Иконка берётся из `MicroSIP.exe` в рантайме (`_microsip_icon`: `shell32.ExtractIconExW` → `wx.Icon.CreateFromHICON`, хендл передаётся wx в собственность — `DestroyIcon` для small не вызывать, иначе access violation). Фолбэк — нарисованная `_drawn_tray_icon`. Выход из трея и смерть хоста (таймер) завершают всё приложение через `ExitMainLoop`; очистка — в `ButtonApp.OnExit` (хук, таймер, окно, трей).
+Трей: `TrayIcon(wx.adv.TaskBarIcon)` с меню «Префикс…» и «Выход». Левый клик по трею — `_on_toggle` → `microsip.toggle_microsip(hwnd)` (`SW_RESTORE`/`SW_HIDE`/`SW_SHOW`), разворачивает/сворачивает окно MicroSIP (то же, что клик по его иконке). «Префикс…» — `wx.TextEntryDialog` → `ButtonApp.set_prefix()`: сохраняет в config.json и обновляет `ButtonFrame._prefix` в рантайме. Иконка берётся из `MicroSIP.exe` в рантайме (`_microsip_icon`: `shell32.ExtractIconExW` → `wx.Icon.CreateFromHICON`, хендл передаётся wx в собственность — `DestroyIcon` для small не вызывать, иначе access violation). Фолбэк — нарисованная `_drawn_tray_icon`. Выход из трея и смерть хоста (таймер) завершают всё приложение через `ExitMainLoop`; очистка кнопки (хук, таймер, окно) — в `ButtonFrame._on_close`. В `ButtonApp.OnExit` остаётся только `RemoveIcon` для трея, без `Destroy()` и без `super().OnExit()` — этот teardown падал с access violation при выключении Windows (v1.7.3).
 
 Префикс (`_resolve_prefix`): `--prefix` из командной строки → `config.json["prefix"]` → `"98"`. Конфиг хранит `{zone, offset, y_offset, prefix}`; `_save_config(**updates)` мержит с существующим (не затирает).
 
@@ -133,6 +133,11 @@ build.bat                          # exe (PyInstaller) + установщик (I
 `build.bat`: PyInstaller (`--onefile --windowed --icon=icon.ico --version-file=version_info.txt`) → `ISCC.exe /DAppVersion=<VERSION>` → результат `installer\Output\MicroSIPButton-Setup-<версия>.exe`. Версия задаётся переменной `VERSION` в начале build.bat. Комплект MicroSIP должен лежать в `installer\bundled\` (портабельный zip с microsip.org).
 
 `extract_icon.py` вытаскивает полноразмерную иконку (16–256px) из `installer\bundled\MicroSIP.exe` в `icon.ico` (парсинг RT_GROUP_ICON/RT_ICON ресурсов PE). Запускается автоматически из `build.bat` при наличии комплекта, чтобы иконка exe/ярлыков не отставала от версии MicroSIP. Важно: у ctypes-вызовов обязательны `argtypes`/`restype` (без них `LoadLibraryExW` обрезает 64-битный хендл до 32 бит), а `EnumResourceNamesW` с колбэком падает в Python 3.14 — вместо него перебор ID через `FindResourceW`.
+
+## Логирование
+
+- `%TEMP%\MicroSIPButton.log` — рабочие события (запуск, вставка номера, ошибки), INFO.
+- `%TEMP%\MicroSIPButton.crash.log` — `faulthandler`: стек всех потоков при нативном падении (wx/Win32) и при необработанном Python-исключении. Каждый запуск пишет строку `--- start <дата> ---`, чтобы отличать сессии.
 
 ## Тестирование
 

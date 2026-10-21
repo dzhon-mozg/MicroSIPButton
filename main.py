@@ -742,13 +742,12 @@ class ButtonApp(wx.App):
         logging.info("prefix changed: %s", prefix)
 
     def OnExit(self):
+        # ponytail: ручной Destroy окна/трея и super().OnExit() падали на выключении
+        # (AccessViolation). Остальное освободит ОС при выходе процесса.
         if self._tray is not None:
             self._tray.RemoveIcon()
-            self._tray.Destroy()
             self._tray = None
-        if self._frame is not None and self._frame._active:
-            self._frame._on_close(None)
-        return super().OnExit()
+        return True
 
 
 if __name__ == '__main__':

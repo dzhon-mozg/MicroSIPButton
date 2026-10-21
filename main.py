@@ -1,5 +1,6 @@
 import ctypes
 import ctypes.wintypes
+import faulthandler
 import json
 import logging
 import os
@@ -240,6 +241,25 @@ def _setup_logging():
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+    _enable_crash_log()
+
+
+def _enable_crash_log():
+    global _CRASH_FILE
+    crash_path = os.path.join(tempfile.gettempdir(), "MicroSIPButton.crash.log")
+    try:
+        _CRASH_FILE = open(crash_path, "a", buffering=1, encoding="utf-8")
+        _CRASH_FILE.write("\n--- start %s ---\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
+        faulthandler.enable(file=_CRASH_FILE, all_threads=True)
+
+        def _excepthook(exc_type, exc, tb):
+            logging.error("uncaught", exc_info=(exc_type, exc, tb))
+            faulthandler.dump_traceback(file=_CRASH_FILE, all_threads=True)
+            sys.__excepthook__(exc_type, exc, tb)
+
+        sys.excepthook = _excepthook
+    except Exception:
+        logging.warning("crash log init failed", exc_info=True)
 
 
 def _config_path():
